@@ -1,0 +1,26 @@
+services:
+  ui-service:
+    build: .
+    container_name: ui-service
+    ports:
+      - "8500:8500"
+    environment:
+      SERVICE_PORT: 8500
+      # Camera service URL (adjust for your deployment)
+      UI_CAMERA_SERVICE_BASE_URL: http://camera-service:8200
+      # Price config path (default: prices.json bundled in image)
+      # UI_PRICE_CONFIG_PATH: /app/prices.json
+    networks:
+      - fruitstack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8500/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  fruitstack:
+    driver: bridge
+

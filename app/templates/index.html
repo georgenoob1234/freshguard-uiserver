@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Умные Весы - {{ view.fruit_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Roboto:wght@400;500;700&display=swap"
+        rel="stylesheet"
+    />
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        .font-condensed {
+            font-family: 'Oswald', sans-serif;
+        }
+        .clover-shape {
+            position: absolute;
+            width: 60vh;
+            height: 60vh;
+            left: -15vh;
+            top: 50%;
+            transform: translateY(-50%) rotate(45deg);
+            background-color: rgba(0, 0, 0, 0.15);
+            border-radius: 40%;
+            filter: blur(2px);
+            z-index: 0;
+        }
+        .clover-shape::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: inherit;
+            border-radius: 40%;
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-white overflow-hidden">
+    <header class="flex justify-between items-baseline px-6 py-4 sm:px-12 sm:py-6 bg-white z-20">
+        <div class="flex items-baseline gap-1">
+            <span id="weight-value" class="text-4xl sm:text-5xl font-condensed font-medium text-black tracking-tight">{{ view.weight_display }}</span>
+            <span class="text-xl sm:text-2xl font-condensed text-black">кг</span>
+        </div>
+        <div class="flex items-baseline gap-1">
+            <span id="price-value" class="text-4xl sm:text-5xl font-condensed font-medium text-black tracking-tight">{{ view.price_display }}</span>
+            <span class="text-xl sm:text-2xl font-condensed text-black">руб/кг</span>
+        </div>
+        <div class="flex items-baseline gap-1">
+            <span id="total-value" class="text-4xl sm:text-5xl font-condensed font-medium text-black tracking-tight">{{ view.total_display }}</span>
+            <span class="text-xl sm:text-2xl font-condensed text-black">руб</span>
+        </div>
+    </header>
+
+    <main class="flex-1 relative bg-[#304D39] w-full flex flex-col justify-center items-center p-6 overflow-hidden">
+        <div class="clover-shape"></div>
+        <div class="relative z-10 w-full max-w-4xl flex flex-col gap-8">
+            <div id="waiting-view" class="{% if view.has_data %}hidden {% endif %}flex items-center justify-center py-24">
+                <p class="text-white text-3xl sm:text-5xl font-bold text-center">
+                    Ожидание обнаружения
+                </p>
+            </div>
+            <div id="result-view" class="{% if not view.has_data %}hidden {% endif %}flex flex-col gap-8">
+                <div class="flex flex-row items-center justify-center gap-12 sm:gap-20 w-full">
+                    <div class="bg-white rounded-[2rem] w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center shadow-lg shrink-0 overflow-hidden relative">
+                        <svg
+                            id="fruit-svg"
+                            class="w-full h-full"
+                            preserveAspectRatio="xMidYMid meet"
+                            role="presentation"
+                        >
+                            <image id="fruit-image" x="0" y="0" width="0" height="0"></image>
+                            <g id="bbox-layer"></g>
+                            <g id="polygon-layer"></g>
+                        </svg>
+                        <div
+                            id="photo-placeholder"
+                            class="absolute inset-0 flex items-center justify-center px-4 text-center pointer-events-none {% if view.image_id %}hidden{% endif %}"
+                        >
+                            <p class="text-black text-lg sm:text-xl font-medium leading-tight">
+                                Placeholder photo
+                            </p>
+                        </div>
+                    </div>
+                    <div class="shrink-0">
+                        <h1 id="fruit-name" class="text-white text-4xl sm:text-6xl font-bold tracking-wide">
+                            {{ view.fruit_name }}
+                        </h1>
+                    </div>
+                </div>
+                <div class="bg-white rounded-[2rem] p-6 sm:p-8 w-full shadow-lg mx-auto max-w-2xl">
+                    <!-- Этот текст должен быть ЗЕЛЁНЫМ для хорошего фрукта и КРАСНЫМ для плохого фрукта. -->
+                    {% set quality_class = 'text-emerald-600' if view.quality_state == 'good' else ('text-[#A55046]' if view.quality_state == 'bad' else 'text-gray-400') %}
+                    <p id="quality-text" class="{{ quality_class }} text-xl sm:text-3xl font-bold text-center leading-snug">
+                        {{ view.quality_text }}
+                    </p>
+                </div>
+                <div class="flex justify-center">
+                    <button
+                        id="ok-button"
+                        type="button"
+                        class="px-10 py-3 rounded-full bg-white text-[#304D39] text-xl font-semibold shadow-md border border-[#304D39]/10 hover:bg-[#F5F5F5] transition"
+                    >
+                        ОК
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white py-4 px-6 sm:px-12 border-t border-gray-100 z-20">
+        <p class="text-[#304D39] text-sm sm:text-base uppercase font-medium tracking-wide">
+            Компьютерное зрение
+        </p>
+    </footer>
+
+    <script>
+        (function () {
+            const initialPayload = {{ view | tojson }};
+            const overlayConfig = {
+                drawBoxes: true,
+                drawPolygons: true,
+            };
+            const SVG_NS = 'http://www.w3.org/2000/svg';
+            const XLINK_NS = 'http://www.w3.org/1999/xlink';
+            const state = { hasActiveResult: Boolean(initialPayload?.has_data) };
+            const waitingView = document.getElementById('waiting-view');
+            const resultView = document.getElementById('result-view');
+            const okButton = document.getElementById('ok-button');
+            const weightEl = document.getElementById('weight-value');
+            const priceEl = document.getElementById('price-value');
+            const totalEl = document.getElementById('total-value');
+            const fruitNameEl = document.getElementById('fruit-name');
+            const qualityTextEl = document.getElementById('quality-text');
+            const svgEl = document.getElementById('fruit-svg');
+            const imageEl = document.getElementById('fruit-image');
+            const bboxLayer = document.getElementById('bbox-layer');
+            const polygonLayer = document.getElementById('polygon-layer');
+            const placeholderEl = document.getElementById('photo-placeholder');
+            let imageRequestId = 0;
+
+            const QUALITY_CLASSES = {
+                good: 'text-emerald-600',
+                bad: 'text-[#A55046]',
+                unknown: 'text-gray-400',
+            };
+            const EMPTY_SYMBOL = '—';
+
+            const hidePlaceholder = () => {
+                placeholderEl?.classList.add('hidden');
+            };
+
+            const showPlaceholder = () => {
+                placeholderEl?.classList.remove('hidden');
+            };
+
+            const resetSvgGeometry = () => {
+                svgEl?.removeAttribute('viewBox');
+                if (!imageEl) {
+                    return;
+                }
+                imageEl.removeAttribute('href');
+                if (typeof imageEl.removeAttributeNS === 'function') {
+                    imageEl.removeAttributeNS(XLINK_NS, 'href');
+                }
+                imageEl.setAttribute('width', '0');
+                imageEl.setAttribute('height', '0');
+            };
+
+            const clearOverlayLayers = () => {
+                if (bboxLayer) {
+                    bboxLayer.innerHTML = '';
+                }
+                if (polygonLayer) {
+                    polygonLayer.innerHTML = '';
+                }
+            };
+
+            const cancelPendingImageRender = () => {
+                imageRequestId += 1;
+            };
+
+            const loadImageDimensions = (imageUrl) =>
+                new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+                    img.onerror = () => reject(new Error('Не удалось загрузить изображение'));
+                    img.src = imageUrl;
+                });
+
+            const drawBoundingBoxes = (fruits) => {
+                if (!overlayConfig.drawBoxes || !bboxLayer || !Array.isArray(fruits)) {
+                    return;
+                }
+                fruits.forEach((fruit) => {
+                    const bbox = fruit?.bbox;
+                    if (!bbox) {
+                        return;
+                    }
+                    const rect = document.createElementNS(SVG_NS, 'rect');
+                    rect.setAttribute('x', bbox.x_min);
+                    rect.setAttribute('y', bbox.y_min);
+                    rect.setAttribute('width', bbox.x_max - bbox.x_min);
+                    rect.setAttribute('height', bbox.y_max - bbox.y_min);
+                    rect.setAttribute('fill', 'none');
+                    rect.setAttribute('stroke', 'rgba(16, 185, 129, 0.85)');
+                    rect.setAttribute('stroke-width', '4');
+                    rect.setAttribute('rx', '8');
+                    rect.setAttribute('ry', '8');
+                    bboxLayer.appendChild(rect);
+                });
+            };
+
+            const drawDefectPolygons = (fruits) => {
+                if (!overlayConfig.drawPolygons || !polygonLayer || !Array.isArray(fruits)) {
+                    return;
+                }
+                fruits.forEach((fruit) => {
+                    fruit?.defects?.forEach((defect) => {
+                        const polygonPoints = defect?.segmentation?.polygon;
+                        if (!Array.isArray(polygonPoints) || polygonPoints.length === 0) {
+                            return;
+                        }
+                        const pointsAttr = polygonPoints
+                            .map((point) => (Array.isArray(point) ? point.join(',') : ''))
+                            .filter(Boolean)
+                            .join(' ');
+                        if (!pointsAttr) {
+                            return;
+                        }
+                        const polygon = document.createElementNS(SVG_NS, 'polygon');
+                        polygon.setAttribute('points', pointsAttr);
+                        polygon.setAttribute('fill', 'rgba(239, 68, 68, 0.35)');
+                        polygon.setAttribute('stroke', 'rgba(220, 38, 38, 0.9)');
+                        polygon.setAttribute('stroke-width', '3');
+                        polygonLayer.appendChild(polygon);
+                    });
+                });
+            };
+
+            const renderOverlays = (fruits) => {
+                clearOverlayLayers();
+                if (!Array.isArray(fruits) || (!overlayConfig.drawBoxes && !overlayConfig.drawPolygons)) {
+                    return;
+                }
+                drawBoundingBoxes(fruits);
+                drawDefectPolygons(fruits);
+            };
+
+            const updateImageAndOverlays = async (payload) => {
+                const requestId = ++imageRequestId;
+                clearOverlayLayers();
+                if (!svgEl || !imageEl) {
+                    return;
+                }
+                const fruits = Array.isArray(payload?.raw_scan?.fruits) ? payload.raw_scan.fruits : [];
+                const imageId = payload?.image_id;
+                if (!imageId) {
+                    resetSvgGeometry();
+                    showPlaceholder();
+                    return;
+                }
+                const bustCacheUrl = `/image/${imageId}?t=${Date.now()}`;
+                try {
+                    const { width, height } = await loadImageDimensions(bustCacheUrl);
+                    if (requestId !== imageRequestId) {
+                        return;
+                    }
+                    svgEl.setAttribute('viewBox', `0 0 ${width} ${height}`);
+                    imageEl.setAttribute('x', '0');
+                    imageEl.setAttribute('y', '0');
+                    imageEl.setAttribute('width', String(width));
+                    imageEl.setAttribute('height', String(height));
+                    imageEl.setAttribute('href', bustCacheUrl);
+                    if (typeof imageEl.setAttributeNS === 'function') {
+                        imageEl.setAttributeNS(XLINK_NS, 'href', bustCacheUrl);
+                    }
+                    hidePlaceholder();
+                    renderOverlays(fruits);
+                } catch (error) {
+                    if (requestId === imageRequestId) {
+                        resetSvgGeometry();
+                        showPlaceholder();
+                        clearOverlayLayers();
+                    }
+                    throw error;
+                }
+            };
+
+            const applyQualityState = (nextState) => {
+                Object.values(QUALITY_CLASSES).forEach((cssClass) => {
+                    qualityTextEl.classList.remove(cssClass);
+                });
+                const cssClass = QUALITY_CLASSES[nextState] || QUALITY_CLASSES.unknown;
+                qualityTextEl.classList.add(cssClass);
+            };
+
+            const showWaiting = () => {
+                cancelPendingImageRender();
+                state.hasActiveResult = false;
+                waitingView.classList.remove('hidden');
+                resultView.classList.add('hidden');
+                weightEl.textContent = EMPTY_SYMBOL;
+                priceEl.textContent = EMPTY_SYMBOL;
+                totalEl.textContent = EMPTY_SYMBOL;
+                fruitNameEl.textContent = EMPTY_SYMBOL;
+                qualityTextEl.textContent = 'Нет данных о качестве';
+                applyQualityState('unknown');
+                resetSvgGeometry();
+                clearOverlayLayers();
+                showPlaceholder();
+            };
+
+            const renderResult = async (payload) => {
+                if (!payload) {
+                    return;
+                }
+                state.hasActiveResult = true;
+                waitingView.classList.add('hidden');
+                resultView.classList.remove('hidden');
+                weightEl.textContent = payload.weight_display ?? EMPTY_SYMBOL;
+                priceEl.textContent = payload.price_display ?? EMPTY_SYMBOL;
+                totalEl.textContent = payload.total_display ?? EMPTY_SYMBOL;
+                fruitNameEl.textContent = payload.fruit_name ?? 'Нет данных';
+                qualityTextEl.textContent = payload.quality_text ?? 'Нет данных о качестве';
+                applyQualityState(payload.quality_state);
+                await updateImageAndOverlays(payload);
+            };
+
+            const showResult = (payload) => {
+                renderResult(payload).catch((error) => {
+                    console.error('Не удалось отобразить результат', error);
+                });
+            };
+
+            okButton?.addEventListener('click', showWaiting);
+
+            if (state.hasActiveResult) {
+                showResult(initialPayload);
+            } else {
+                showWaiting();
+            }
+
+            const initWebSocket = () => {
+                const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+                const wsUrl = `${protocol}://${window.location.host}/ws`;
+                const ws = new WebSocket(wsUrl);
+
+                ws.addEventListener('message', (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data?.type === 'scan_result' && data.payload) {
+                            showResult(data.payload);
+                        }
+                    } catch (error) {
+                        console.error('Не удалось обработать сообщение веб-сокета', error);
+                    }
+                });
+
+                ws.addEventListener('close', () => {
+                    setTimeout(initWebSocket, 2000);
+                });
+
+                ws.addEventListener('error', () => {
+                    ws.close();
+                });
+            };
+
+            initWebSocket();
+        })();
+    </script>
+</body>
+</html>
+
+
