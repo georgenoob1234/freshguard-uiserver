@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Literal, Optional, Tuple
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -26,7 +26,7 @@ class BBox(BaseModel):
 
 class FruitSummary(BaseModel):
     fruit_id: str = Field(alias="fruit_id")
-    fruit_class: Literal["apple", "banana", "tomato"]
+    fruit_class: str
     confidence: float
     bbox: BBox
     defects: List[DefectInfo] = Field(default_factory=list)

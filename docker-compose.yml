@@ -8,8 +8,8 @@ services:
       SERVICE_PORT: 8500
       # Camera service URL (adjust for your deployment)
       UI_CAMERA_SERVICE_BASE_URL: http://camera-service:8200
-      # Price config path (default: prices.json bundled in image)
-      # UI_PRICE_CONFIG_PATH: /app/prices.json
+      # Fruit catalog path (default: fruit.json bundled in image)
+      # UI_FRUIT_CONFIG_PATH: /app/fruit.json
     networks:
       - fruitstack
     restart: unless-stopped

@@ -25,7 +25,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 settings = get_settings()
 storage = LatestScanStorage()
-price_catalog = PriceCatalog(settings.resolve_price_path())
+price_catalog = PriceCatalog(settings.resolve_fruit_path())
 camera_client = CameraClient(str(settings.camera_service_base_url))
 SCAN_RESULT_EVENT = "scan_result"
 

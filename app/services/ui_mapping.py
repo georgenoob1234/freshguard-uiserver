@@ -5,11 +5,18 @@ from typing import Any, Dict, Optional
 from ..models import FruitSummary, ScanResult
 from ..pricing import PriceCatalog
 
-FRUIT_NAME_MAP = {
-    "apple": "Яблоко",
-    "banana": "Банан",
-    "tomato": "Помидор",
-}
+FRUIT_NAME_MAP: Dict[str, str] = {}
+
+
+def get_pretty_name(fruit_class: Optional[str], prices: PriceCatalog) -> str:
+    # Keep public FRUIT_NAME_MAP entry-point compatible, but source names from config.
+    FRUIT_NAME_MAP.clear()
+    FRUIT_NAME_MAP.update(prices.pretty_names)
+    return prices.get_pretty_name(fruit_class)
+
+
+def get_price_per_kg(fruit_class: Optional[str], prices: PriceCatalog) -> Optional[float]:
+    return prices.get_price(fruit_class)
 
 
 def _format_number(value: Optional[float], decimals: int) -> str:
@@ -46,14 +53,14 @@ def build_view_model(
     if is_multi_fruit:
         fruit_name = "Мульти-фрукт"
     else:
-        fruit_name = FRUIT_NAME_MAP.get(fruit_class, "Нет данных")
+        fruit_name = get_pretty_name(fruit_class, prices)
 
     weight_kg_val: Optional[float] = None
     if scan:
         weight_kg_val = round(scan.weight_grams / 1000, 3)
 
     # No price for multi-fruit (show dash)
-    price_val = None if is_multi_fruit else prices.get_price(fruit_class)
+    price_val = None if is_multi_fruit else get_price_per_kg(fruit_class, prices)
     total_price_val: Optional[float] = None
     if weight_kg_val is not None and price_val is not None:
         total_price_val = round(weight_kg_val * price_val, 2)

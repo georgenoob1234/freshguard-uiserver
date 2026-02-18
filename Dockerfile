@@ -42,7 +42,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code and config files
 COPY app/ ./app/
-COPY prices.json .
+COPY fruit.json .
 
 # Change ownership to non-root user
 RUN chown -R appuser:appuser /app

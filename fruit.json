@@ -1,0 +1,14 @@
+{
+  "apple": {
+    "name": "Яблоко",
+    "price_per_kg": 120.0
+  },
+  "banana": {
+    "name": "Банан",
+    "price_per_kg": 85.0
+  },
+  "tomato": {
+    "name": "Помидор",
+    "price_per_kg": 140.0
+  }
+}

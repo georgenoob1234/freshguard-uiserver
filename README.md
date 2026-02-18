@@ -27,7 +27,19 @@ Configuration is managed via environment variables with the `UI_` prefix:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `UI_CAMERA_SERVICE_BASE_URL` | `http://localhost:8200` | Base URL of the Camera service |
-| `UI_PRICE_CONFIG_PATH` | `prices.json` | Path to the pricing configuration file |
+| `UI_FRUIT_CONFIG_PATH` | `fruit.json` | Path to the fruit catalog JSON file (names + prices) |
+
+Legacy compatibility: `UI_PRICE_CONFIG_PATH` is still accepted as a deprecated alias.
+
+`fruit.json` format:
+
+```json
+{
+  "apple": { "name": "Яблоко", "price_per_kg": 120.0 },
+  "banana": { "name": "Банан", "price_per_kg": 85.0 },
+  "tomato": { "name": "Помидор", "price_per_kg": 140.0 }
+}
+```
 
 ## Local Development
 
@@ -71,7 +83,7 @@ docker run --rm -p 8500:8500 \
 |----------|---------|-------------|
 | `SERVICE_PORT` | `8500` | Port the service listens on |
 | `UI_CAMERA_SERVICE_BASE_URL` | `http://localhost:8200` | Camera service URL |
-| `UI_PRICE_CONFIG_PATH` | `prices.json` | Price config path (bundled in image) |
+| `UI_FRUIT_CONFIG_PATH` | `fruit.json` | Fruit catalog path (bundled in image) |
 
 ### Using Docker Compose
 
