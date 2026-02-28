@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Умные весы</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #ffffff;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .container,
+        .staff-modal,
+        .password-modal {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: #f9f9f9;
+            border-bottom: 1px solid #d1d5db;
+            gap: 1rem;
+        }
+
+        .top-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #111827;
+        }
+
+        .top-label {
+            font-size: 0.95rem;
+            color: #4b5563;
+            margin-bottom: 0.2rem;
+        }
+
+        .top-value {
+            font-size: 2rem;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+
+        .top-unit {
+            font-size: 1rem;
+            color: #374151;
+            margin-left: 0.25rem;
+        }
+
+        .value-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+        }
+
+        .main {
+            display: flex;
+            flex: 1;
+            background: #065f46;
+            color: #ffffff;
+            padding: 2rem;
+            gap: 2rem;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        .customer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            min-width: 360px;
+        }
+
+        .waiting-state {
+            font-size: 2.8rem;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .result-state {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .fruit-name {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.1;
+            max-width: 420px;
+            word-break: break-word;
+        }
+
+        .freshness-box {
+            border: 3px solid;
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-align: center;
+            background-color: rgba(6, 95, 70, 0.2);
+            min-width: 260px;
+        }
+
+        .quality-good {
+            border-color: #15ff00;
+            color: #15ff00;
+        }
+
+        .quality-bad {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .quality-unknown {
+            border-color: #e5e7eb;
+            color: #e5e7eb;
+        }
+
+        .ok-button {
+            margin-top: 0.5rem;
+            padding: 0.6rem 2.2rem;
+            border: none;
+            border-radius: 999px;
+            background: #ffffff;
+            color: #065f46;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .ok-button:hover {
+            transform: scale(1.04);
+        }
+
+        .image-frame {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .video-container {
+            width: min(52vw, 760px);
+            max-height: 72vh;
+            border: 2px solid #ffffff;
+            border-radius: 12px;
+            background: #0b3d2f;
+        }
+
+        .video-container img,
+        .staff-camera img {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
+        .image-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #f9fafb;
+            padding: 1rem;
+            font-size: 1.15rem;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .bbox-overlay {
+            position: absolute;
+            border: 3px solid #15ff00;
+            border-radius: 8px;
+            box-sizing: border-box;
+            pointer-events: none;
+            display: block;
+        }
+
+        .bottom-bar {
+            height: 50px;
+            background: #f9f9f9;
+            position: relative;
+            border-top: 1px solid #d1d5db;
+        }
+
+        .staff-button,
+        .customer-button {
+            width: 34px;
+            height: 34px;
+            background: #ffffff;
+            border: 2px solid #111827;
+            border-radius: 6px;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            right: 10px;
+            user-select: none;
+        }
+
+        .ws-indicator {
+            position: absolute;
+            top: 50%;
+            left: 12px;
+            transform: translateY(-50%);
+            padding: 0.22rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: bold;
+            letter-spacing: 0.02em;
+        }
+
+        .ws-connected {
+            background: #166534;
+            color: #dcfce7;
+        }
+
+        .ws-disconnected {
+            background: #991b1b;
+            color: #fee2e2;
+        }
+
+        .ws-reconnecting {
+            background: #9a3412;
+            color: #ffedd5;
+        }
+
+        .staff-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1200;
+            color: #ffffff;
+        }
+
+        .staff-top-bar,
+        .staff-bottom-bar {
+            height: 50px;
+            background: #f9f9f9;
+            position: relative;
+            border-bottom: 1px solid #d1d5db;
+        }
+
+        .staff-bottom-bar {
+            border-top: 1px solid #d1d5db;
+            border-bottom: none;
+        }
+
+        .staff-main {
+            flex: 1;
+            background: #065f46;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        .staff-content {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .staff-camera {
+            flex: 1.3;
+            width: 100%;
+            border: 2px solid #ffffff;
+            border-radius: 12px;
+            max-height: 78vh;
+            background: #0b3d2f;
+        }
+
+        .staff-data-panel {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(5px);
+            padding: 1.2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .data-field {
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.4);
+            padding-bottom: 0.35rem;
+        }
+
+        .data-label {
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            opacity: 0.85;
+            margin-bottom: 0.1rem;
+        }
+
+        .data-value {
+            font-size: 1.55rem;
+            font-weight: bold;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+
+        .data-value-small {
+            font-size: 1.15rem;
+        }
+
+        .password-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-container {
+            background: #ffffff;
+            padding: 1.6rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: min(92vw, 400px);
+            box-sizing: border-box;
+        }
+
+        .password-container h3 {
+            margin-top: 0;
+            color: #111827;
+            text-align: center;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #065f46;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #047857;
+            box-shadow: 0 0 5px rgba(4, 120, 87, 0.5);
+        }
+
+        .password-error {
+            color: #dc2626;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+            text-align: center;
+            min-height: 18px;
+        }
+
+        .password-keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 18px;
+            width: 100%;
+        }
+
+        .keypad-btn {
+            width: 100%;
+            height: 74px;
+            padding: 0;
+            font-size: 30px;
+            font-weight: bold;
+            border: 2px solid #000000;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #000000;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        .keypad-btn:hover {
+            background: #f0f0f0;
+            transform: scale(1.03);
+        }
+
+        .keypad-btn:active {
+            transform: scale(0.97);
+        }
+
+        .keypad-btn.submit {
+            background: #065f46;
+            color: #ffffff;
+            border-color: #065f46;
+            font-size: 34px;
+        }
+
+        .keypad-btn.submit:hover {
+            background: #047857;
+            border-color: #047857;
+        }
+
+        .keypad-btn.cancel {
+            background: #9ca3af;
+            color: #ffffff;
+            border-color: #9ca3af;
+            font-size: 34px;
+        }
+
+        .keypad-btn.cancel:hover {
+            background: #6b7280;
+            border-color: #6b7280;
+        }
+
+        @media (max-width: 1100px) {
+            .main {
+                flex-direction: column;
+            }
+
+            .video-container {
+                width: min(90vw, 760px);
+            }
+
+            .staff-content {
+                flex-direction: column;
+            }
+
+            .staff-camera {
+                width: min(90vw, 760px);
+            }
+
+            .staff-data-panel {
+                width: min(90vw, 760px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="password-modal" id="passwordModal">
+        <div class="password-container">
+            <h3>Вход в режим персонала</h3>
+            <input
+                type="password"
+                id="passwordInput"
+                class="password-input"
+                placeholder="Введите пароль"
+                autocomplete="off"
+                inputmode="numeric"
+            />
+            <div class="password-error" id="passwordError">Неверный пароль. Попробуйте снова.</div>
+            <div class="password-keypad">
+                <button class="keypad-btn" data-digit="1" type="button">1</button>
+                <button class="keypad-btn" data-digit="2" type="button">2</button>
+                <button class="keypad-btn" data-digit="3" type="button">3</button>
+                <button class="keypad-btn" data-digit="4" type="button">4</button>
+                <button class="keypad-btn" data-digit="5" type="button">5</button>
+                <button class="keypad-btn" data-digit="6" type="button">6</button>
+                <button class="keypad-btn" data-digit="7" type="button">7</button>
+                <button class="keypad-btn" data-digit="8" type="button">8</button>
+                <button class="keypad-btn" data-digit="9" type="button">9</button>
+                <button class="keypad-btn submit" id="passwordSubmit" type="button">&#10003;</button>
+                <button class="keypad-btn" data-digit="0" type="button">0</button>
+                <button class="keypad-btn cancel" id="passwordCancel" type="button">&#10005;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="mainInterface">
+        <div class="top-bar">
+            <div class="top-item">
+                <span class="top-label">Вес</span>
+                <span class="value-row">
+                    <span id="weightValue" class="top-value">{{ view.weight_display }}</span>
+                    <span class="top-unit">кг</span>
+                </span>
+            </div>
+            <div class="top-item">
+                <span class="top-label">Цена за кг</span>
+                <span class="value-row">
+                    <span id="priceValue" class="top-value">{{ view.price_display }}</span>
+                    <span class="top-unit">руб/кг</span>
+                </span>
+            </div>
+            <div class="top-item">
+                <span class="top-label">Итоговая цена</span>
+                <span class="value-row">
+                    <span id="totalValue" class="top-value">{{ view.total_display }}</span>
+                    <span class="top-unit">руб</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="customer-content">
+                <div class="waiting-state" id="waitingState">Ожидание обнаружения</div>
+                <div class="result-state hidden" id="resultState">
+                    <div class="fruit-name" id="fruitName">{{ view.fruit_name }}</div>
+                    <div class="freshness-box quality-unknown" id="qualityText">{{ view.quality_text }}</div>
+                    <button class="ok-button" id="okButton" type="button">ОК</button>
+                </div>
+            </div>
+            <div class="video-container image-frame" id="customerImageFrame">
+                <img id="customerImage" alt="Изображение фрукта" />
+                <div id="customerPlaceholder" class="image-placeholder">Нет изображения</div>
+                <div id="customerBbox" class="bbox-overlay hidden"></div>
+            </div>
+        </div>
+
+        <div class="bottom-bar">
+            <div class="staff-button" id="openStaffButton">👤</div>
+        </div>
+    </div>
+
+    <div class="staff-modal" id="staffModal">
+        <div class="staff-top-bar"></div>
+        <div class="staff-main">
+            <div class="staff-content">
+                <div class="staff-camera image-frame" id="staffImageFrame">
+                    <img id="staffImage" alt="Изображение камеры персонала" />
+                    <div id="staffPlaceholder" class="image-placeholder">Нет изображения</div>
+                    <div id="staffBbox" class="bbox-overlay hidden"></div>
+                </div>
+                <div class="staff-data-panel">
+                    <div class="data-field">
+                        <span class="data-label">Продукт</span>
+                        <span class="data-value" id="staffFruitName">{{ view.fruit_name }}</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-label">Вес продукта</span>
+                        <span class="data-value" id="staffWeight">{{ view.weight_display }} кг</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-label">Цена за кг</span>
+                        <span class="data-value" id="staffPrice">{{ view.price_display }} руб/кг</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-label">Итоговая цена</span>
+                        <span class="data-value" id="staffTotal">{{ view.total_display }} руб</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-label">Качество</span>
+                        <span class="data-value quality-unknown" id="staffQuality">{{ view.quality_text }}</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-label">Дефекты</span>
+                        <span class="data-value data-value-small" id="staffDefects">Нет</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="data-label">Статус Детекора</span>
+                        <span class="data-value data-value-small ws-indicator ws-disconnected" id="wsStatusStaff" style="position: static; transform: none; left: auto; top: auto; width: fit-content;">ОТКЛЮЧЕНО</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="staff-bottom-bar">
+            <div class="customer-button" id="closeStaffButton">🛒</div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const initialPayload = {{ view | tojson }};
+            const EMPTY = "—";
+            const NO_DATA = "Нет данных";
+            const QUALITY_STATES = {
+                good: "quality-good",
+                bad: "quality-bad",
+                unknown: "quality-unknown",
+            };
+            const WS_STATES = {
+                connected: { label: "Работает", cls: "ws-connected" },
+                disconnected: { label: "Неработает", cls: "ws-disconnected" },
+                reconnecting: { label: "Ожидание...", cls: "ws-reconnecting" },
+            };
+            const NO_FRUITS_TITLE = "Фрукты не обнаружены";
+            const NO_FRUITS_MESSAGE = "На изображении ничего не обнаружено";
+
+            const elements = {
+                mainInterface: document.getElementById("mainInterface"),
+                waitingState: document.getElementById("waitingState"),
+                resultState: document.getElementById("resultState"),
+                weightValue: document.getElementById("weightValue"),
+                priceValue: document.getElementById("priceValue"),
+                totalValue: document.getElementById("totalValue"),
+                fruitName: document.getElementById("fruitName"),
+                qualityText: document.getElementById("qualityText"),
+                okButton: document.getElementById("okButton"),
+                customerImageFrame: document.getElementById("customerImageFrame"),
+                customerImage: document.getElementById("customerImage"),
+                customerPlaceholder: document.getElementById("customerPlaceholder"),
+                customerBbox: document.getElementById("customerBbox"),
+                staffModal: document.getElementById("staffModal"),
+                openStaffButton: document.getElementById("openStaffButton"),
+                closeStaffButton: document.getElementById("closeStaffButton"),
+                staffImageFrame: document.getElementById("staffImageFrame"),
+                staffImage: document.getElementById("staffImage"),
+                staffPlaceholder: document.getElementById("staffPlaceholder"),
+                staffBbox: document.getElementById("staffBbox"),
+                staffFruitName: document.getElementById("staffFruitName"),
+                staffWeight: document.getElementById("staffWeight"),
+                staffPrice: document.getElementById("staffPrice"),
+                staffTotal: document.getElementById("staffTotal"),
+                staffQuality: document.getElementById("staffQuality"),
+                staffDefects: document.getElementById("staffDefects"),
+                wsStatusStaff: document.getElementById("wsStatusStaff"),
+                passwordModal: document.getElementById("passwordModal"),
+                passwordInput: document.getElementById("passwordInput"),
+                passwordError: document.getElementById("passwordError"),
+                passwordSubmit: document.getElementById("passwordSubmit"),
+                passwordCancel: document.getElementById("passwordCancel"),
+                keypadDigits: Array.from(document.querySelectorAll("[data-digit]")),
+            };
+
+            const state = {
+                latestPayload: initialPayload && initialPayload.has_data ? initialPayload : null,
+                customerDismissed: false,
+                isStaffMode: false,
+                ws: null,
+                reconnectTimer: null,
+                reconnectAttempt: 0,
+            };
+
+            const safeArray = (value) => (Array.isArray(value) ? value : []);
+            const safeText = (value, fallback = EMPTY) => {
+                if (typeof value !== "string") {
+                    return fallback;
+                }
+                const trimmed = value.trim();
+                return trimmed ? trimmed : fallback;
+            };
+
+            const getRawScan = (payload) => (payload && typeof payload.raw_scan === "object" ? payload.raw_scan : null);
+            const getFruits = (payload) => {
+                const rawScan = getRawScan(payload);
+                return safeArray(rawScan && rawScan.fruits);
+            };
+
+            const selectPrimaryFruit = (payload) => {
+                const fruits = getFruits(payload);
+                if (!fruits.length) {
+                    return null;
+                }
+                if (fruits[0]) {
+                    return fruits[0];
+                }
+                return fruits.reduce((best, item) => {
+                    const bestConf = Number(best && best.confidence);
+                    const itemConf = Number(item && item.confidence);
+                    if (!Number.isFinite(itemConf)) {
+                        return best;
+                    }
+                    if (!Number.isFinite(bestConf) || itemConf > bestConf) {
+                        return item;
+                    }
+                    return best;
+                }, null);
+            };
+
+            const getDefects = (fruit) => safeArray(fruit && fruit.defects);
+            const hasDefects = (fruit) => getDefects(fruit).length > 0;
+            const qualityFromFruit = (fruit) => {
+                if (!fruit) {
+                    return { state: "unknown", text: "Нет данных о качестве" };
+                }
+                if (hasDefects(fruit)) {
+                    return { state: "bad", text: "Плохое" };
+                }
+                return { state: "good", text: "Хорошее" };
+            };
+
+            const defectsTextFromFruit = (fruit) => {
+                if (!fruit) {
+                    return "Нет";
+                }
+                const names = getDefects(fruit)
+                    .map((item) => {
+                        if (item && typeof item.type === "string" && item.type.trim()) {
+                            return item.type.trim();
+                        }
+                        return "Дефект";
+                    })
+                    .filter(Boolean);
+                return names.length ? names.join(", ") : "Нет";
+            };
+
+            const setQualityClass = (element, nextState) => {
+                if (!element) {
+                    return;
+                }
+                Object.values(QUALITY_STATES).forEach((className) => element.classList.remove(className));
+                element.classList.add(QUALITY_STATES[nextState] || QUALITY_STATES.unknown);
+            };
+
+            const setWsStatus = (status) => {
+                const statusConfig = WS_STATES[status] || WS_STATES.disconnected;
+                if (!elements.wsStatusStaff) {
+                    return;
+                }
+                elements.wsStatusStaff.textContent = statusConfig.label;
+                elements.wsStatusStaff.classList.remove("ws-connected", "ws-disconnected", "ws-reconnecting");
+                elements.wsStatusStaff.classList.add(statusConfig.cls);
+            };
+
+            const buildImageUrl = (imageId) => `/image/${encodeURIComponent(imageId)}?v=${Date.now()}`;
+
+            const hideBbox = (bboxEl) => {
+                if (!bboxEl) {
+                    return;
+                }
+                bboxEl.classList.add("hidden");
+                bboxEl.style.left = "";
+                bboxEl.style.top = "";
+                bboxEl.style.width = "";
+                bboxEl.style.height = "";
+            };
+
+            const setImage = (imgEl, placeholderEl, imageId) => {
+                if (!imgEl || !placeholderEl) {
+                    return;
+                }
+                if (!imageId) {
+                    imgEl.removeAttribute("src");
+                    imgEl.classList.add("hidden");
+                    placeholderEl.classList.add("hidden");
+                    return;
+                }
+                imgEl.classList.remove("hidden");
+                imgEl.src = buildImageUrl(imageId);
+                placeholderEl.classList.add("hidden");
+            };
+
+            const setPreviewVisibility = (hasPreview) => {
+                [elements.customerImageFrame, elements.staffImageFrame].forEach((frameEl) => {
+                    if (!frameEl) {
+                        return;
+                    }
+                    frameEl.classList.toggle("hidden", !hasPreview);
+                });
+            };
+
+            const getBbox = (fruit) => {
+                const raw = fruit && fruit.bbox;
+                if (!raw || typeof raw !== "object") {
+                    return null;
+                }
+                const x1 = Number(raw.x_min);
+                const y1 = Number(raw.y_min);
+                const x2 = Number(raw.x_max);
+                const y2 = Number(raw.y_max);
+                if (![x1, y1, x2, y2].every(Number.isFinite)) {
+                    return null;
+                }
+                if (x2 <= x1 || y2 <= y1) {
+                    return null;
+                }
+                return { x1, y1, x2, y2 };
+            };
+
+            const getOriginalImageSize = (payload, imgEl) => {
+                const rawScan = getRawScan(payload);
+                const payloadWidth = Number(rawScan && rawScan.image_width);
+                const payloadHeight = Number(rawScan && rawScan.image_height);
+                if (Number.isFinite(payloadWidth) && Number.isFinite(payloadHeight) && payloadWidth > 0 && payloadHeight > 0) {
+                    return { width: payloadWidth, height: payloadHeight };
+                }
+                const naturalWidth = Number(imgEl && imgEl.naturalWidth);
+                const naturalHeight = Number(imgEl && imgEl.naturalHeight);
+                if (Number.isFinite(naturalWidth) && Number.isFinite(naturalHeight) && naturalWidth > 0 && naturalHeight > 0) {
+                    return { width: naturalWidth, height: naturalHeight };
+                }
+                return null;
+            };
+
+            const renderBboxForImage = (imgEl, bboxEl, payload, primaryFruit) => {
+                if (!imgEl || !bboxEl || !payload || !primaryFruit) {
+                    hideBbox(bboxEl);
+                    return;
+                }
+                const bbox = getBbox(primaryFruit);
+                if (!bbox) {
+                    hideBbox(bboxEl);
+                    return;
+                }
+                const original = getOriginalImageSize(payload, imgEl);
+                if (!original) {
+                    hideBbox(bboxEl);
+                    return;
+                }
+                const displayWidth = imgEl.clientWidth;
+                const displayHeight = imgEl.clientHeight;
+                if (!displayWidth || !displayHeight) {
+                    hideBbox(bboxEl);
+                    return;
+                }
+                const scaleX = displayWidth / original.width;
+                const scaleY = displayHeight / original.height;
+                const left = bbox.x1 * scaleX;
+                const top = bbox.y1 * scaleY;
+                const width = (bbox.x2 - bbox.x1) * scaleX;
+                const height = (bbox.y2 - bbox.y1) * scaleY;
+                bboxEl.style.left = `${left}px`;
+                bboxEl.style.top = `${top}px`;
+                bboxEl.style.width = `${width}px`;
+                bboxEl.style.height = `${height}px`;
+                bboxEl.style.borderColor = hasDefects(primaryFruit) ? "#ff0000" : "#15ff00";
+                bboxEl.classList.remove("hidden");
+            };
+
+            const renderBboxes = (payload) => {
+                const primaryFruit = selectPrimaryFruit(payload);
+                renderBboxForImage(elements.customerImage, elements.customerBbox, payload, primaryFruit);
+                renderBboxForImage(elements.staffImage, elements.staffBbox, payload, primaryFruit);
+            };
+
+            const showWaitingState = () => {
+                elements.waitingState.classList.remove("hidden");
+                elements.resultState.classList.add("hidden");
+            };
+
+            const showResultState = () => {
+                elements.waitingState.classList.add("hidden");
+                elements.resultState.classList.remove("hidden");
+            };
+
+            const clearMetrics = () => {
+                elements.weightValue.textContent = EMPTY;
+                elements.priceValue.textContent = EMPTY;
+                elements.totalValue.textContent = EMPTY;
+                elements.fruitName.textContent = EMPTY;
+                elements.qualityText.textContent = "Нет данных о качестве";
+                setQualityClass(elements.qualityText, "unknown");
+                elements.staffFruitName.textContent = NO_DATA;
+                elements.staffWeight.textContent = `${EMPTY} кг`;
+                elements.staffPrice.textContent = `${EMPTY} руб/кг`;
+                elements.staffTotal.textContent = `${EMPTY} руб`;
+                elements.staffQuality.textContent = "Нет данных о качестве";
+                setQualityClass(elements.staffQuality, "unknown");
+                elements.staffDefects.textContent = "Нет";
+            };
+
+            const applyPayload = (payload) => {
+                const primaryFruit = selectPrimaryFruit(payload);
+                const hasImage = Boolean(payload && payload.image_id);
+                const hasPrimaryFruit = Boolean(primaryFruit);
+                if (!payload || !hasImage) {
+                    showWaitingState();
+                    setPreviewVisibility(false);
+                    setImage(elements.customerImage, elements.customerPlaceholder, null);
+                    setImage(elements.staffImage, elements.staffPlaceholder, null);
+                    hideBbox(elements.customerBbox);
+                    hideBbox(elements.staffBbox);
+                    clearMetrics();
+                    return;
+                }
+
+                if (!hasPrimaryFruit) {
+                    setPreviewVisibility(true);
+                    setImage(elements.customerImage, elements.customerPlaceholder, payload.image_id);
+                    setImage(elements.staffImage, elements.staffPlaceholder, payload.image_id);
+                    hideBbox(elements.customerBbox);
+                    hideBbox(elements.staffBbox);
+
+                    elements.weightValue.textContent = EMPTY;
+                    elements.priceValue.textContent = EMPTY;
+                    elements.totalValue.textContent = EMPTY;
+                    elements.fruitName.textContent = NO_FRUITS_TITLE;
+                    elements.qualityText.textContent = NO_FRUITS_MESSAGE;
+                    setQualityClass(elements.qualityText, "unknown");
+
+                    elements.staffFruitName.textContent = NO_FRUITS_TITLE;
+                    elements.staffWeight.textContent = `${EMPTY} кг`;
+                    elements.staffPrice.textContent = `${EMPTY} руб/кг`;
+                    elements.staffTotal.textContent = `${EMPTY} руб`;
+                    elements.staffQuality.textContent = NO_FRUITS_MESSAGE;
+                    setQualityClass(elements.staffQuality, "unknown");
+                    elements.staffDefects.textContent = "Нет";
+
+                    if (state.customerDismissed) {
+                        showWaitingState();
+                    } else {
+                        showResultState();
+                    }
+                    return;
+                }
+
+                setPreviewVisibility(true);
+                const quality = qualityFromFruit(primaryFruit);
+                const defectsText = defectsTextFromFruit(primaryFruit);
+
+                elements.weightValue.textContent = safeText(payload.weight_display);
+                elements.priceValue.textContent = safeText(payload.price_display);
+                elements.totalValue.textContent = safeText(payload.total_display);
+                elements.fruitName.textContent = safeText(payload.fruit_name, NO_DATA);
+                elements.qualityText.textContent = quality.text;
+                setQualityClass(elements.qualityText, quality.state);
+
+                elements.staffFruitName.textContent = safeText(payload.fruit_name, NO_DATA);
+                elements.staffWeight.textContent = `${safeText(payload.weight_display)} кг`;
+                elements.staffPrice.textContent = `${safeText(payload.price_display)} руб/кг`;
+                elements.staffTotal.textContent = `${safeText(payload.total_display)} руб`;
+                elements.staffQuality.textContent = quality.text;
+                setQualityClass(elements.staffQuality, quality.state);
+                elements.staffDefects.textContent = defectsText;
+
+                setImage(elements.customerImage, elements.customerPlaceholder, payload.image_id);
+                setImage(elements.staffImage, elements.staffPlaceholder, payload.image_id);
+                renderBboxes(payload);
+
+                if (state.customerDismissed) {
+                    showWaitingState();
+                } else {
+                    showResultState();
+                }
+            };
+
+            const openPasswordModal = () => {
+                elements.passwordInput.value = "";
+                elements.passwordError.style.display = "none";
+                elements.passwordError.textContent = "Неверный пароль. Попробуйте снова.";
+                elements.passwordModal.style.display = "flex";
+                elements.passwordInput.focus();
+            };
+
+            const closePasswordModal = () => {
+                elements.passwordModal.style.display = "none";
+            };
+
+            const openStaffModal = () => {
+                state.isStaffMode = true;
+                elements.staffModal.style.display = "flex";
+                elements.staffModal.style.flexDirection = "column";
+                elements.mainInterface.classList.add("hidden");
+                elements.openStaffButton.textContent = "🛒";
+                elements.closeStaffButton.textContent = "🛒";
+                renderBboxes(state.latestPayload);
+            };
+
+            const closeStaffModal = () => {
+                state.isStaffMode = false;
+                elements.staffModal.style.display = "none";
+                elements.mainInterface.classList.remove("hidden");
+                elements.openStaffButton.textContent = "👤";
+                elements.closeStaffButton.textContent = "🛒";
+            };
+
+            const toggleStaffMode = () => {
+                if (state.isStaffMode) {
+                    closeStaffModal();
+                    return;
+                }
+                openPasswordModal();
+            };
+
+            const showPasswordError = (text) => {
+                elements.passwordError.style.display = "block";
+                elements.passwordError.textContent = text || "Неверный пароль. Попробуйте снова.";
+                elements.passwordInput.value = "";
+                elements.passwordInput.focus();
+            };
+
+            const submitPassword = async () => {
+                const enteredPassword = elements.passwordInput.value;
+                try {
+                    const response = await fetch("/staff/unlock", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ password: enteredPassword }),
+                    });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    const data = await response.json();
+                    if (data && data.ok === true) {
+                        closePasswordModal();
+                        openStaffModal();
+                        return;
+                    }
+                    showPasswordError("Неверный пароль. Попробуйте снова.");
+                } catch (error) {
+                    console.error("Ошибка проверки пароля", error);
+                    showPasswordError("Ошибка проверки пароля. Повторите попытку.");
+                }
+            };
+
+            const scheduleReconnect = () => {
+                if (state.reconnectTimer) {
+                    return;
+                }
+                const delayMs = Math.min(1000 * (2 ** state.reconnectAttempt), 15000);
+                state.reconnectAttempt += 1;
+                setWsStatus("reconnecting");
+                state.reconnectTimer = window.setTimeout(() => {
+                    state.reconnectTimer = null;
+                    connectWebSocket();
+                }, delayMs);
+            };
+
+            const connectWebSocket = () => {
+                const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+                const wsUrl = `${protocol}://${window.location.host}/ws`;
+                try {
+                    state.ws = new WebSocket(wsUrl);
+                } catch (error) {
+                    console.error("Не удалось создать WebSocket", error);
+                    setWsStatus("disconnected");
+                    scheduleReconnect();
+                    return;
+                }
+
+                state.ws.addEventListener("open", () => {
+                    state.reconnectAttempt = 0;
+                    setWsStatus("connected");
+                });
+
+                state.ws.addEventListener("message", (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data && data.type === "scan_result" && data.payload) {
+                            state.latestPayload = data.payload;
+                            state.customerDismissed = false;
+                            applyPayload(state.latestPayload);
+                        }
+                    } catch (error) {
+                        console.error("Ошибка парсинга сообщения WebSocket", error);
+                    }
+                });
+
+                state.ws.addEventListener("close", () => {
+                    setWsStatus("disconnected");
+                    scheduleReconnect();
+                });
+
+                state.ws.addEventListener("error", () => {
+                    setWsStatus("disconnected");
+                    try {
+                        state.ws.close();
+                    } catch (closeError) {
+                        console.error("Ошибка закрытия WebSocket", closeError);
+                    }
+                });
+            };
+
+            elements.okButton.addEventListener("click", () => {
+                state.customerDismissed = false;
+                state.latestPayload = null;
+                applyPayload(null);
+            });
+
+            elements.openStaffButton.addEventListener("click", toggleStaffMode);
+            elements.closeStaffButton.addEventListener("click", toggleStaffMode);
+            elements.passwordCancel.addEventListener("click", closePasswordModal);
+            elements.passwordSubmit.addEventListener("click", submitPassword);
+
+            elements.passwordInput.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    submitPassword();
+                }
+            });
+
+            elements.keypadDigits.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const digit = btn.getAttribute("data-digit");
+                    if (!digit) {
+                        return;
+                    }
+                    elements.passwordInput.value += digit;
+                    elements.passwordError.style.display = "none";
+                });
+            });
+
+            [elements.customerImage, elements.staffImage].forEach((imgEl) => {
+                imgEl.addEventListener("load", () => renderBboxes(state.latestPayload));
+                imgEl.addEventListener("error", () => {
+                    if (imgEl === elements.customerImage) {
+                        elements.customerPlaceholder.classList.remove("hidden");
+                        hideBbox(elements.customerBbox);
+                    } else {
+                        elements.staffPlaceholder.classList.remove("hidden");
+                        hideBbox(elements.staffBbox);
+                    }
+                });
+            });
+
+            window.addEventListener("resize", () => renderBboxes(state.latestPayload));
+
+            setWsStatus("disconnected");
+            applyPayload(state.latestPayload);
+            connectWebSocket();
+        })();
+    </script>
+</body>
+</html>
