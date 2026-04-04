@@ -201,12 +201,6 @@
             background: rgba(0, 0, 0, 0.2);
         }
 
-        .bbox-container {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-        }
-
         .bbox-overlay {
             position: absolute;
             border: 3px solid #15ff00;
@@ -570,7 +564,7 @@
             <div class="video-container image-frame" id="customerImageFrame">
                 <img id="customerImage" alt="Изображение фрукта" />
                 <div id="customerPlaceholder" class="image-placeholder">Нет изображения</div>
-                <div id="customerBbox" class="bbox-container hidden"></div>
+                <div id="customerBbox" class="bbox-overlay hidden"></div>
             </div>
         </div>
 
@@ -586,7 +580,7 @@
                 <div class="staff-camera image-frame" id="staffImageFrame">
                     <img id="staffImage" alt="Изображение камеры персонала" />
                     <div id="staffPlaceholder" class="image-placeholder">Нет изображения</div>
-                    <div id="staffBbox" class="bbox-container hidden"></div>
+                    <div id="staffBbox" class="bbox-overlay hidden"></div>
                 </div>
                 <div class="staff-data-panel">
                     <div class="data-field">
@@ -638,7 +632,7 @@
             const WS_STATES = {
                 connected: { label: "Работает", cls: "ws-connected" },
                 disconnected: { label: "Неработает", cls: "ws-disconnected" },
-                reconnecting: { label: "Ожидание...", cls: "ws-reconnecting" },
+                reconnecting: { label: "Неработает (rc)", cls: "ws-reconnecting" },
             };
             const NO_FRUITS_TITLE = "Фрукты не обнаружены";
             const NO_FRUITS_MESSAGE = "На изображении ничего не обнаружено";
@@ -775,8 +769,11 @@
                 if (!bboxEl) {
                     return;
                 }
-                bboxEl.innerHTML = "";
                 bboxEl.classList.add("hidden");
+                bboxEl.style.left = "";
+                bboxEl.style.top = "";
+                bboxEl.style.width = "";
+                bboxEl.style.height = "";
             };
 
             const setImage = (imgEl, placeholderEl, imageId) => {
@@ -836,63 +833,52 @@
                 return null;
             };
 
-            const renderBboxesForImage = (imgEl, containerEl, payload) => {
-                if (!imgEl || !containerEl || !payload) {
-                    hideBbox(containerEl);
+            const renderBboxForImage = (imgEl, bboxEl, payload, primaryFruit) => {
+                if (!imgEl || !bboxEl || !payload || !primaryFruit) {
+                    hideBbox(bboxEl);
                     return;
                 }
-                const fruits = getFruits(payload);
+                const bbox = getBbox(primaryFruit);
+                if (!bbox) {
+                    hideBbox(bboxEl);
+                    return;
+                }
                 const original = getOriginalImageSize(payload, imgEl);
                 if (!original) {
-                    hideBbox(containerEl);
+                    hideBbox(bboxEl);
                     return;
                 }
                 const displayWidth = imgEl.clientWidth;
                 const displayHeight = imgEl.clientHeight;
                 if (!displayWidth || !displayHeight) {
-                    hideBbox(containerEl);
-                    return;
-                }
-                containerEl.innerHTML = "";
-                if (!fruits.length) {
-                    hideBbox(containerEl);
+                    hideBbox(bboxEl);
                     return;
                 }
                 const scale = Math.min(displayWidth / original.width, displayHeight / original.height);
                 if (!Number.isFinite(scale) || scale <= 0) {
-                    hideBbox(containerEl);
+                    hideBbox(bboxEl);
                     return;
                 }
                 const renderedWidth = original.width * scale;
                 const renderedHeight = original.height * scale;
                 const insetX = (displayWidth - renderedWidth) / 2;
                 const insetY = (displayHeight - renderedHeight) / 2;
-                const imageOffsetX = imgEl.offsetLeft;
-                const imageOffsetY = imgEl.offsetTop;
-                fruits.forEach((fruit) => {
-                    const bbox = getBbox(fruit);
-                    if (!bbox) {
-                        return;
-                    }
-                    const left = imageOffsetX + insetX + bbox.x1 * scale;
-                    const top = imageOffsetY + insetY + bbox.y1 * scale;
-                    const width = (bbox.x2 - bbox.x1) * scale;
-                    const height = (bbox.y2 - bbox.y1) * scale;
-                    const boxEl = document.createElement("div");
-                    boxEl.className = "bbox-overlay";
-                    boxEl.style.left = `${left}px`;
-                    boxEl.style.top = `${top}px`;
-                    boxEl.style.width = `${width}px`;
-                    boxEl.style.height = `${height}px`;
-                    boxEl.style.borderColor = hasDefects(fruit) ? "#ff0000" : "#15ff00";
-                    containerEl.appendChild(boxEl);
-                });
-                containerEl.classList.remove("hidden");
+                const left = imgEl.offsetLeft + insetX + bbox.x1 * scale;
+                const top = imgEl.offsetTop + insetY + bbox.y1 * scale;
+                const width = (bbox.x2 - bbox.x1) * scale;
+                const height = (bbox.y2 - bbox.y1) * scale;
+                bboxEl.style.left = `${left}px`;
+                bboxEl.style.top = `${top}px`;
+                bboxEl.style.width = `${width}px`;
+                bboxEl.style.height = `${height}px`;
+                bboxEl.style.borderColor = hasDefects(primaryFruit) ? "#ff0000" : "#15ff00";
+                bboxEl.classList.remove("hidden");
             };
 
             const renderBboxes = (payload) => {
-                renderBboxesForImage(elements.customerImage, elements.customerBbox, payload);
-                renderBboxesForImage(elements.staffImage, elements.staffBbox, payload);
+                const primaryFruit = selectPrimaryFruit(payload);
+                renderBboxForImage(elements.customerImage, elements.customerBbox, payload, primaryFruit);
+                renderBboxForImage(elements.staffImage, elements.staffBbox, payload, primaryFruit);
             };
             const rerenderBboxes = () => renderBboxes(state.latestPayload);
 
