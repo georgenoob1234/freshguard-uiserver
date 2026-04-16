@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 from ..models import FruitSummary, ScanResult
 from ..pricing import PriceCatalog
@@ -26,11 +26,11 @@ def _format_number(value: Optional[float], decimals: int) -> str:
     return format_str.format(value)
 
 
-def _derive_quality(fruit: Optional[FruitSummary]) -> tuple[str, str]:
-    if fruit is None:
+def _derive_quality(fruits: Optional[Sequence[FruitSummary]]) -> tuple[str, str]:
+    if not fruits:
         return "Нет данных о качестве", "unknown"
 
-    if fruit.defects:
+    if any(f.defects for f in fruits):
         return "Обнаружены дефекты продукта", "bad"
 
     return "Продукт соответствует стандарту качества", "good"
@@ -65,7 +65,7 @@ def build_view_model(
     if weight_kg_val is not None and price_val is not None:
         total_price_val = round(weight_kg_val * price_val, 2)
 
-    quality_text, quality_state = _derive_quality(fruit)
+    quality_text, quality_state = _derive_quality(scan.fruits if scan else None)
 
     # Determine price display: dash for multi-fruit, "нет цены" for missing price
     if is_multi_fruit:
