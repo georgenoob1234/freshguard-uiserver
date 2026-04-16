@@ -726,21 +726,24 @@
 
             const getDefects = (fruit) => safeArray(fruit && fruit.defects);
             const hasDefects = (fruit) => getDefects(fruit).length > 0;
-            const qualityFromFruit = (fruit) => {
-                if (!fruit) {
+            const qualityFromFruits = (fruits) => {
+                const list = safeArray(fruits);
+                if (!list.length) {
                     return { state: "unknown", text: "Нет данных о качестве" };
                 }
-                if (hasDefects(fruit)) {
+                if (list.some(hasDefects)) {
                     return { state: "bad", text: "Плохое" };
                 }
                 return { state: "good", text: "Хорошее" };
             };
 
-            const defectsTextFromFruit = (fruit) => {
-                if (!fruit) {
+            const defectsTextFromFruits = (fruits) => {
+                const list = safeArray(fruits);
+                if (!list.length) {
                     return "Нет";
                 }
-                const names = getDefects(fruit)
+                const names = list
+                    .flatMap(getDefects)
                     .map((item) => {
                         if (item && typeof item.type === "string" && item.type.trim()) {
                             return item.type.trim();
@@ -968,8 +971,9 @@
                 }
 
                 setPreviewVisibility(true);
-                const quality = qualityFromFruit(primaryFruit);
-                const defectsText = defectsTextFromFruit(primaryFruit);
+                const allFruits = getFruits(payload);
+                const quality = qualityFromFruits(allFruits);
+                const defectsText = defectsTextFromFruits(allFruits);
 
                 elements.weightValue.textContent = safeText(payload.weight_display);
                 elements.priceValue.textContent = safeText(payload.price_display);
